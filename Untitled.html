@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Twitter Retweet Counts</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #232323;
+            color: #f5f5f5;
+            text-align: center;
+            margin-top: 50px;
+        }
+        .container > div {
+            margin-bottom: 40px;
+        }
+        h2 {
+            margin: 20px 0;
+            font-weight: 600;
+            font-size: 24px;
+            color: #e0e0e0;
+        }
+        .worldRecordLink {
+            color: #8bc34a; /* Softer green */
+            text-decoration: none;
+        }
+        .mrBeastLink {
+            color: #03a9f4; /* Softer blue */
+            text-decoration: none;
+        }
+        .worldRecordLink:hover {
+            color: #689f38; /* Slightly darker green */
+        }
+        .mrBeastLink:hover {
+            color: #0277bd; /* Slightly darker blue */
+        }
+        #difference h2 {
+            color: #ffc107;
+        }
+        #zeroTime h2 {
+            color: #e91e63; /* Pink color */
+        }
+        #giveawayEnd h2 {
+            color: #9c27b0; /* Distinct purple color for the new section */
+        }
+        .count {
+            font-size: 72px; /* Larger font for numbers */
+            margin: 10px 0;
+            font-weight: 700;
+        }
+        .time {
+            font-size: 36px; /* Original size for estimated time */
+            margin: 10px 0;
+            font-weight: 700;
+        }
+        .timezone {
+            font-size: 24px;
+            color: #b2bec3;
+        }
+        .countdown {
+            font-size: 40px; /* Slightly larger font for giveaway countdown */
+            margin: 10px 0;
+            font-weight: 700;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="worldRecordTweet">
+            <h2><a href="https://x.com/yousuck2020/status/1081544630754103296" target="_blank" class="worldRecordLink">Previous World Record Tweet Retweet Number:</a></h2>
+            <div class="count" id="worldRecordCount">0</div>
+        </div>
+        <div id="mrBeastTweet">
+            <h2><a href="https://x.com/mrbeast/status/1749500209061663043" target="_blank" class="mrBeastLink">MrBeast Tweet Retweet Number (WR):</a></h2>
+            <div class="count" id="mrBeastCount">0</div>
+        </div>
+        <div id="difference">
+            <h2>Retweet Difference:</h2>
+            <div class="count" id="differenceCount">0</div>
+        </div>
+        <div id="giveawayEnd">
+            <h2>Giveaway End:</h2>
+            <div class="countdown" id="countdownTimer">Calculating...</div>
+        </div>
+        </div>
+    </div>
+
+    <script>
+        let previousData = null;
+        let lastEstimatedTime = 'Calculating...';
+
+        function calculateEstimatedZeroTime(currentData) {
+            if (!previousData) {
+                previousData = currentData;
+                return lastEstimatedTime;
+            }
+
+            const worldRecordGrowth = currentData.worldRecordCount - previousData.worldRecordCount;
+            const mrBeastGrowth = currentData.mrBeastCount - previousData.mrBeastCount;
+            const growthDifference = worldRecordGrowth - mrBeastGrowth;
+
+            if (growthDifference === 0) {
+                return lastEstimatedTime;
+            }
+
+            const timeToZero = (currentData.difference / Math.abs(growthDifference)) * 1; // in seconds
+            const estimatedTime = new Date();
+            estimatedTime.setSeconds(estimatedTime.getSeconds() + timeToZero);
+
+            lastEstimatedTime = estimatedTime.toLocaleString([], { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+            const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            document.getElementById('estimatedTimezone').innerText = timezone;
+
+            previousData = currentData;
+
+            return lastEstimatedTime;
+        }
+
+        function fetchDataAndUpdateUI() {
+            Promise.all([
+                fetch('https://axern.space/api/get?platform=twitter&type=tweet&id=1081544630754103296'),
+                fetch('https://axern.space/api/get?platform=twitter&type=tweet&id=1749500209061663043')
+            ])
+            .then(responses => Promise.all(responses.map(res => res.json())))
+            .then(data => {
+                const worldRecordData = data[0];
+                const mrBeastData = data[1];
+
+                const worldRecordCount = worldRecordData.apiRetweetCount + worldRecordData.apiQuoteCount;
+                const mrBeastCount = mrBeastData.apiRetweetCount + mrBeastData.apiQuoteCount;
+                const difference = Math.abs(worldRecordCount - mrBeastCount);
+
+                const currentData = {
+                    worldRecordCount: worldRecordCount,
+                    mrBeastCount: mrBeastCount,
+                    difference: difference
+                };
+
+                document.getElementById('worldRecordCount').innerText = worldRecordCount.toLocaleString();
+                document.getElementById('mrBeastCount').innerText = mrBeastCount.toLocaleString();
+                document.getElementById('differenceCount').innerText = difference.toLocaleString();
+                document.getElementById('estimatedTime').innerText = calculateEstimatedZeroTime(currentData);
+            })
+            .catch(error => console.error('Error fetching data:', error));
+        }
+
+        function calculateCountdown() {
+            const giveawayEndTime = new Date('2024-01-23T05:32:00+11:00').getTime() + 72 * 3600 * 1000; // 72 hours after 5:32 AM Jan 23, 2024 AEDT
+            const now = new Date().getTime();
+            const distance = giveawayEndTime - now;
+
+            if (distance < 0) {
+                document.getElementById('countdownTimer').innerText = 'Ended';
+                return;
+            }
+
+            const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+            document.getElementById('countdownTimer').innerText = days + 'd ' + hours + 'h ' + minutes + 'm ' + seconds + 's ';
+        }
+
+        setInterval(calculateCountdown, 1000);
+
+        // Fetch data and update UI
+        fetchDataAndUpdateUI();
+
+        // Refresh the data every 1 second
+        setInterval(fetchDataAndUpdateUI, 1000); // Refresh every 1 second
+    </script>
+</body>
+</html>
